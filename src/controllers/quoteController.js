@@ -2,8 +2,21 @@ const Quote = require('../models/Quote');
 
 // Helper to generate Quote Number
 const generateQuoteNumber = async (category, projectCode, financialYear) => {
-  const count = await Quote.countDocuments({ financialYear });
-  const sequence = String(count + 1).padStart(3, '0');
+  const lastQuote = await Quote.findOne({ financialYear }).sort({ createdAt: -1 });
+  
+  let nextSeq = 1;
+  if (lastQuote && lastQuote.quoteNumber) {
+    const parts = lastQuote.quoteNumber.split('/');
+    const lastSeqNum = parseInt(parts[parts.length - 1], 10);
+    if (!isNaN(lastSeqNum)) {
+      nextSeq = lastSeqNum + 1;
+    } else {
+      const count = await Quote.countDocuments({ financialYear });
+      nextSeq = count + 1;
+    }
+  }
+
+  const sequence = String(nextSeq).padStart(3, '0');
   return `AAI/QTN/${category.toUpperCase()}/${projectCode}/${financialYear}/${sequence}`;
 };
 
@@ -68,10 +81,21 @@ exports.updateQuote = async (req, res) => {
 
 exports.deleteQuote = async (req, res) => {
   try {
-    // Soft delete
-    await Quote.findByIdAndUpdate(req.params.id, { status: 'inactive' });
-    res.json({ msg: 'Quote deactivated' });
+    const quote = await Quote.findById(req.params.id);
+    if (!quote) return res.status(404).json({ msg: 'Quote not found' });
+
+    if (quote.status === 'active') {
+      // Soft delete
+      quote.status = 'inactive';
+      await quote.save();
+      return res.json({ msg: 'Quote deactivated' });
+    } else {
+      // Hard delete
+      await Quote.findByIdAndDelete(req.params.id);
+      return res.json({ msg: 'Quote permanently deleted' });
+    }
   } catch (err) {
+    console.error(err);
     res.status(500).json({ msg: 'Server error' });
   }
 };
