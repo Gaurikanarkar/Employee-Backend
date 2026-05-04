@@ -9,8 +9,7 @@ const projectRoutes = require('./routes/projectRoutes');
 const serviceRoutes = require('./routes/serviceRoutes');
 const quoteRoutes = require('./routes/quoteRoutes');
 const invoiceRoutes = require('./routes/invoiceRoutes');
-
-
+const documentRoutes = require('./routes/documentRoutes');
 
 const app = express();
 app.use(cors()); 
@@ -25,5 +24,6 @@ app.use('/api/projects', projectRoutes);
 app.use('/api/services', serviceRoutes);
 app.use('/api/quotes', quoteRoutes);
 app.use('/api/invoices', invoiceRoutes);
+app.use('/api/documents', documentRoutes);
 
 module.exports = app;
